@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>개구리 게임</title><style>
+body {
+  margin:0;
+  font-family:sans-serif;
+  background:linear-gradient(#d8fbe4,#a5f3fc);
+  text-align:center;
+}
+canvas {
+  background:#74c0fc;
+  display:block;
+  margin:0 auto;
+  border-radius:20px;
+}
+button {
+  padding:15px 30px;
+  font-size:20px;
+  background:#2f9e44;
+  color:white;
+  border:none;
+  border-radius:15px;
+}
+</style></head><body><h2>🐸 개구리 파리 잡기</h2>
+<p>점수: <span id="score">0</span></p>
+<button onclick="startGame()">게임 시작</button>
+<canvas id="game" width="400" height="600"></canvas><script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let bugs = [];
+let score = 0;
+let gameRunning = false;
+
+// 🔊 효과음
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+}
+
+// 🐛 벌레 생성
+function spawnBug(){
+  bugs.push({
+    x: Math.random()*360+20,
+    y: Math.random()*400+50,
+    size:15
+  });
+}
+
+// 🎮 게임 시작
+function startGame(){
+  audioCtx.resume();
+  bugs = [];
+  score = 0;
+  gameRunning = true;
+
+  for(let i=0;i<5;i++) spawnBug();
+
+  gameLoop();
+}
+
+// 🐸 그리기
+function draw(){
+  ctx.clearRect(0,0,400,600);
+
+  // 벌레
+  bugs.forEach(b=>{
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.size,0,Math.PI*2);
+    ctx.fillStyle="black";
+    ctx.fill();
+  });
+}
+
+// 🖱 클릭
+canvas.addEventListener("click",(e)=>{
+  if(!gameRunning) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  bugs = bugs.filter(b=>{
+    const hit = Math.hypot(b.x-x,b.y-y)<20;
+    if(hit){
+      score++;
+      playSound(600);
+      document.getElementById("score").innerText=score;
+    }
+    return !hit;
+  });
+});
+
+// 🔁 루프
+function gameLoop(){
+  if(!gameRunning) return;
+
+  if(Math.random()<0.02) spawnBug();
+
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+</script></body>
+</html>
