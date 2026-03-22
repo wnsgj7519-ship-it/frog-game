@@ -3,822 +3,914 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>개구리 파리 잡기 - 스테이지 모드</title>
-
-  <meta name="theme-color" content="#2f9e44" />
-  <meta name="description" content="개구리 혀로 파리를 잡는 스테이지형 모바일 게임" />
-
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./frog_icon.png" />
-  <link rel="apple-touch-icon" href="./frog_icon.png" />
+  <title>개구리 파리 잡기 - 스테이지 모드 완성본</title>
 
   <style>
-    :root {
-      --bg-top: #d8fbe4;
-      --bg-bottom: #a5f3fc;
-      --panel: rgba(255,255,255,0.88);
-      --text: #184d33;
-      --green: #2f9e44;
-      --green2: #37b24d;
-      --green3: #69db7c;
-      --red: #ff6b6b;
-    }
-
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: #b9ecff;
     }
 
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Malgun Gothic, sans-serif;
-      background: linear-gradient(var(--bg-top), var(--bg-bottom));
-      color: var(--text);
-      text-align: center;
+      touch-action: manipulation;
     }
 
-    .wrap {
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 10px 10px 18px;
+    #gameWrap {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background:
+        linear-gradient(to top, #68c25f 0 24%, #9fe7ff 24% 100%);
     }
 
-    h1 {
-      font-size: 28px;
-      margin: 10px 0 8px;
+    .cloud {
+      position: absolute;
+      top: 6%;
+      width: 90px;
+      height: 40px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 30px;
+      filter: blur(0.3px);
+      opacity: 0.9;
     }
 
-    .hud {
+    .cloud::before,
+    .cloud::after {
+      content: "";
+      position: absolute;
+      background: rgba(255,255,255,0.92);
+      border-radius: 50%;
+    }
+
+    .cloud::before {
+      width: 42px;
+      height: 42px;
+      left: 12px;
+      top: -18px;
+    }
+
+    .cloud::after {
+      width: 52px;
+      height: 52px;
+      right: 10px;
+      top: -22px;
+    }
+
+    #pond {
+      position: absolute;
+      left: 50%;
+      bottom: 70px;
+      transform: translateX(-50%);
+      width: 220px;
+      height: 90px;
+      background: radial-gradient(circle at center, #60d8ff 0%, #1cb3e8 62%, #1286b7 100%);
+      border-radius: 50%;
+      box-shadow: inset 0 6px 0 rgba(255,255,255,0.25);
+    }
+
+    #frog {
+      position: absolute;
+      left: 50%;
+      bottom: 95px;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 110px;
+      z-index: 5;
+    }
+
+    .frog-body {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 74px;
+      background: #31b84d;
+      border-radius: 55px 55px 42px 42px;
+      border: 3px solid #1b7e31;
+    }
+
+    .eye {
+      position: absolute;
+      top: 6px;
+      width: 28px;
+      height: 28px;
+      background: #31b84d;
+      border-radius: 50%;
+      border: 3px solid #1b7e31;
+    }
+
+    .eye.left { left: 28px; }
+    .eye.right { right: 28px; }
+
+    .eye::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 7px;
+      width: 10px;
+      height: 10px;
+      background: #111;
+      border-radius: 50%;
+    }
+
+    .cheek {
+      position: absolute;
+      top: 46px;
+      width: 15px;
+      height: 10px;
+      background: rgba(255, 160, 160, 0.8);
+      border-radius: 50%;
+    }
+
+    .cheek.left { left: 24px; }
+    .cheek.right { right: 24px; }
+
+    .mouth {
+      position: absolute;
+      left: 50%;
+      top: 52px;
+      transform: translateX(-50%);
+      width: 34px;
+      height: 15px;
+      border-bottom: 3px solid #155724;
+      border-radius: 0 0 18px 18px;
+    }
+
+    #tongue {
+      position: absolute;
+      left: 50%;
+      bottom: 44px;
+      width: 0;
+      height: 6px;
+      background: linear-gradient(to right, #ff7aa8, #ff4f8d);
+      border-radius: 4px;
+      transform-origin: left center;
+      transform: rotate(0deg);
+      z-index: 4;
+      opacity: 0;
+      box-shadow: 0 0 6px rgba(255, 79, 141, 0.3);
+    }
+
+    #flyLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+    }
+
+    .fly {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      will-change: transform, left, top;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+    }
+
+    .fly.hit {
+      animation: pop 0.18s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes pop {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+    }
+
+    #hud {
+      position: absolute;
+      top: max(12px, env(safe-area-inset-top));
+      left: 10px;
+      right: 10px;
+      z-index: 20;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin-bottom: 10px;
     }
 
-    .pill {
-      background: var(--panel);
+    .panel {
+      background: rgba(255,255,255,0.88);
       border-radius: 16px;
-      padding: 10px 8px;
-      font-weight: 800;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      padding: 10px 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
       font-size: 14px;
+      line-height: 1.45;
+      color: #113;
+    }
+
+    .panel strong {
+      font-size: 16px;
+    }
+
+    #topButtons {
+      position: absolute;
+      right: 10px;
+      top: calc(max(12px, env(safe-area-inset-top)) + 98px);
+      z-index: 25;
+      display: flex;
+      gap: 8px;
+      flex-direction: column;
     }
 
     button {
-      padding: 14px 28px;
-      font-size: 18px;
-      background: var(--green);
-      color: white;
       border: none;
       border-radius: 14px;
-      margin: 6px 0 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      cursor: pointer;
+    }
+
+    #startBtn { background: #1bb34a; color: #fff; }
+    #pauseBtn { background: #ffc93c; color: #222; }
+    #endBtn { background: #ff5a5a; color: #fff; }
+
+    #stageBanner {
+      position: absolute;
+      left: 50%;
+      top: 26%;
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      min-width: 250px;
+      max-width: 90vw;
+      padding: 16px 20px;
+      background: rgba(0,0,0,0.72);
+      color: #fff;
+      border-radius: 18px;
+      text-align: center;
+      font-size: 20px;
       font-weight: 800;
-      box-shadow: 0 8px 16px rgba(47,158,68,0.28);
+      display: none;
     }
 
-    button:disabled {
-      opacity: 0.7;
+    #messageOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      background: rgba(0, 0, 0, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
 
-    canvas {
-      width: 100%;
-      height: auto;
-      display: block;
-      margin: 0 auto;
-      border-radius: 22px;
-      background: linear-gradient(#c7f9cc 0 28%, #74c0fc 28% 100%);
-      touch-action: none;
-      box-shadow: 0 18px 36px rgba(0,0,0,0.18);
+    #messageBox {
+      width: min(92vw, 420px);
+      background: #fff;
+      border-radius: 24px;
+      padding: 24px 18px 18px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
     }
 
-    .tip {
-      margin-top: 10px;
-      background: var(--panel);
-      border-radius: 16px;
-      padding: 12px;
-      line-height: 1.5;
+    #messageTitle {
+      font-size: 28px;
+      margin-bottom: 10px;
+      font-weight: 900;
+      color: #134;
+    }
+
+    #messageText {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      white-space: pre-line;
+      margin-bottom: 16px;
+    }
+
+    #messageBtn {
+      background: #2f9e44;
+      color: white;
+      min-width: 150px;
+    }
+
+    #bottomGuide {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      z-index: 20;
+      background: rgba(255,255,255,0.85);
+      padding: 8px 14px;
+      border-radius: 999px;
       font-size: 13px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      color: #234;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>🐸 개구리 파리 잡기</h1>
+  <div id="gameWrap">
+    <div class="cloud" style="left:8%; top:8%;"></div>
+    <div class="cloud" style="left:70%; top:12%; transform:scale(1.1);"></div>
 
-    <div class="hud">
-      <div class="pill">스테이지<br><span id="stage">1</span></div>
-      <div class="pill">점수<br><span id="score">0</span></div>
-      <div class="pill">목표<br><span id="goal">15</span></div>
-      <div class="pill">시간<br><span id="time">30</span></div>
+    <div id="hud">
+      <div class="panel">
+        <div>스테이지: <strong id="stageText">1</strong></div>
+        <div>남은 시간: <strong id="timeText">20</strong>초</div>
+      </div>
+      <div class="panel">
+        <div>현재 스테이지 점수: <strong id="stageScoreText">0</strong> / 15</div>
+        <div>총 누적 점수: <strong id="totalScoreText">0</strong></div>
+      </div>
     </div>
 
-    <button id="startBtn">게임 시작</button>
-    <canvas id="game" width="420" height="680"></canvas>
+    <div id="topButtons">
+      <button id="startBtn">게임 시작</button>
+      <button id="pauseBtn">일시정지</button>
+      <button id="endBtn">게임 종료</button>
+    </div>
 
-    <div class="tip">
-      30초 안에 15점 이상이면 다음 스테이지로 넘어갑니다. 스테이지가 올라갈수록 파리가 더 빠르게 움직입니다.
-      화면을 탭하면 개구리 입에서 혀가 돌돌 풀리듯 뻗어 나갑니다.
+    <div id="stageBanner"></div>
+
+    <div id="flyLayer"></div>
+
+    <div id="pond"></div>
+
+    <div id="frog">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="frog-body"></div>
+      <div class="cheek left"></div>
+      <div class="cheek right"></div>
+      <div class="mouth"></div>
+    </div>
+
+    <div id="tongue"></div>
+
+    <div id="bottomGuide">파리를 터치해서 잡으세요</div>
+
+    <div id="messageOverlay">
+      <div id="messageBox">
+        <div id="messageTitle">개구리 파리 잡기</div>
+        <div id="messageText">각 스테이지에서 제한시간 안에
+15점 이상을 얻어야 다음 단계로 넘어갑니다.
+
+누적점수가 아니라
+그 스테이지 안에서만 15점 이상이어야 합니다.</div>
+        <button id="messageBtn">시작하기</button>
+      </div>
     </div>
   </div>
 
   <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
+    (() => {
+      "use strict";
 
-    const stageEl = document.getElementById("stage");
-    const scoreEl = document.getElementById("score");
-    const goalEl = document.getElementById("goal");
-    const timeEl = document.getElementById("time");
-    const startBtn = document.getElementById("startBtn");
+      const gameWrap = document.getElementById("gameWrap");
+      const flyLayer = document.getElementById("flyLayer");
+      const frog = document.getElementById("frog");
+      const tongue = document.getElementById("tongue");
 
-    const W = canvas.width;
-    const H = canvas.height;
-    const WATER_Y = 185;
-    const GOAL_SCORE = 15;
-    const STAGE_TIME = 30;
+      const stageText = document.getElementById("stageText");
+      const timeText = document.getElementById("timeText");
+      const stageScoreText = document.getElementById("stageScoreText");
+      const totalScoreText = document.getElementById("totalScoreText");
 
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioCtx();
+      const startBtn = document.getElementById("startBtn");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const endBtn = document.getElementById("endBtn");
 
-    let running = false;
-    let stage = 1;
-    let score = 0;
-    let timeLeft = STAGE_TIME;
-    let animationId = null;
-    let lastTime = 0;
+      const stageBanner = document.getElementById("stageBanner");
 
-    let spawnAccum = 0;
-    let transitionText = "";
-    let transitionTimer = 0;
-    let hitFlash = 0;
+      const messageOverlay = document.getElementById("messageOverlay");
+      const messageTitle = document.getElementById("messageTitle");
+      const messageText = document.getElementById("messageText");
+      const messageBtn = document.getElementById("messageBtn");
 
-    const flies = [];
-    const particles = [];
-    const popTexts = [];
+      const GAME = {
+        stage: 1,
+        totalScore: 0,
+        stageScore: 0,
+        timeLeft: 20,
+        targetPerStage: 15,
+        isPlaying: false,
+        isPaused: false,
+        timerId: null,
+        spawnId: null,
+        moveId: null,
+        activeFlies: [],
+        maxStage: 5
+      };
 
-    const frog = {
-      x: W / 2,
-      y: H - 108,
-      faceR: 58,
-      tongue: {
-        active: false,
-        progress: 0,
-        targetX: W / 2,
-        targetY: H / 2,
-        tipX: W / 2,
-        tipY: H / 2,
-        state: "idle",
-        speed: 2.3,
-        hitPlayed: false
+      const stageConfig = {
+        1: { time: 20, spawnMs: 1100, flyMax: 2, speed: 1.2 },
+        2: { time: 20, spawnMs: 950,  flyMax: 3, speed: 1.6 },
+        3: { time: 18, spawnMs: 820,  flyMax: 4, speed: 2.0 },
+        4: { time: 18, spawnMs: 720,  flyMax: 5, speed: 2.35 },
+        5: { time: 16, spawnMs: 620,  flyMax: 6, speed: 2.7 }
+      };
+
+      let audioCtx = null;
+      let bgmOsc = null;
+      let bgmGain = null;
+      let bgmLfo = null;
+      let bgmLfoGain = null;
+      let audioUnlocked = false;
+
+      function updateHUD() {
+        stageText.textContent = String(GAME.stage);
+        timeText.textContent = String(GAME.timeLeft);
+        stageScoreText.textContent = String(GAME.stageScore);
+        totalScoreText.textContent = String(GAME.totalScore);
       }
-    };
 
-    const bgmState = {
-      playing: false,
-      elapsed: 0,
-      step: 0,
-      interval: 0.28
-    };
-
-    function resumeAudio() {
-      if (audioCtx.state === "suspended") {
-        return audioCtx.resume();
+      function showOverlay(title, text, btnText, btnHandler) {
+        messageTitle.textContent = title;
+        messageText.textContent = text;
+        messageBtn.textContent = btnText;
+        messageOverlay.style.display = "flex";
+        messageBtn.onclick = btnHandler;
       }
-      return Promise.resolve();
-    }
 
-    function tone(freq, dur = 0.12, type = "square", volume = 0.03, start = 0) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      function hideOverlay() {
+        messageOverlay.style.display = "none";
+      }
 
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+      function showBanner(text) {
+        stageBanner.textContent = text;
+        stageBanner.style.display = "block";
+        clearTimeout(stageBanner._timer);
+        stageBanner._timer = setTimeout(() => {
+          stageBanner.style.display = "none";
+        }, 1400);
+      }
 
-      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + start + dur);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(audioCtx.currentTime + start);
-      osc.stop(audioCtx.currentTime + start + dur + 0.03);
-    }
-
-    function playStageIntro(n) {
-      const root = 280 + n * 25;
-      tone(root, 0.08, "triangle", 0.035, 0.00);
-      tone(root * 1.25, 0.08, "triangle", 0.035, 0.10);
-      tone(root * 1.5, 0.16, "triangle", 0.04, 0.20);
-    }
-
-    function playHitSound(sizeBonus = 0) {
-      tone(700 + sizeBonus * 18, 0.05, "square", 0.06, 0.00);
-      tone(980 + sizeBonus * 12, 0.09, "sawtooth", 0.045, 0.03);
-      tone(1280, 0.06, "triangle", 0.03, 0.08);
-    }
-
-    function playMissSound() {
-      tone(180, 0.06, "sawtooth", 0.02, 0.00);
-      tone(130, 0.09, "triangle", 0.015, 0.05);
-    }
-
-    function playStageClearSound() {
-      tone(523, 0.08, "triangle", 0.035, 0.00);
-      tone(659, 0.08, "triangle", 0.035, 0.10);
-      tone(784, 0.15, "triangle", 0.045, 0.20);
-    }
-
-    function playGameOverSound() {
-      tone(300, 0.10, "triangle", 0.025, 0.00);
-      tone(240, 0.12, "triangle", 0.02, 0.10);
-      tone(180, 0.16, "triangle", 0.02, 0.22);
-    }
-
-    function startBgm(stageNo) {
-      bgmState.playing = true;
-      bgmState.elapsed = 0;
-      bgmState.step = 0;
-      bgmState.interval = Math.max(0.16, 0.28 - (stageNo - 1) * 0.01);
-    }
-
-    function stopBgm() {
-      bgmState.playing = false;
-    }
-
-    function updateBgm(dt) {
-      if (!bgmState.playing || audioCtx.state !== "running") return;
-
-      const melodies = [
-        [392, 494, 523, 587, 523, 494, 392, 330],
-        [440, 523, 587, 659, 587, 523, 440, 349],
-        [494, 587, 659, 740, 659, 587, 494, 392],
-        [523, 659, 698, 784, 698, 659, 523, 440]
-      ];
-      const basses = [
-        [196, 196, 220, 220, 196, 196, 165, 165],
-        [220, 220, 247, 247, 220, 220, 196, 196],
-        [247, 247, 262, 262, 247, 247, 220, 220],
-        [262, 262, 294, 294, 262, 262, 220, 220]
-      ];
-
-      const idx = (stage - 1) % melodies.length;
-      const melody = melodies[idx];
-      const bass = basses[idx];
-
-      bgmState.elapsed += dt;
-
-      while (bgmState.elapsed >= bgmState.interval) {
-        bgmState.elapsed -= bgmState.interval;
-
-        const i = bgmState.step % melody.length;
-        tone(melody[i], 0.12, "triangle", 0.02, 0.00);
-        tone(bass[i], 0.20, "sine", 0.013, 0.00);
-        if (i % 2 === 0) {
-          tone(melody[i] * 2, 0.05, "square", 0.009, 0.05);
+      function clearAllLoops() {
+        if (GAME.timerId) {
+          clearInterval(GAME.timerId);
+          GAME.timerId = null;
         }
-
-        bgmState.step++;
-      }
-    }
-
-    function rand(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    function updateHud() {
-      stageEl.textContent = stage;
-      scoreEl.textContent = score;
-      goalEl.textContent = GOAL_SCORE;
-      timeEl.textContent = Math.max(0, Math.ceil(timeLeft));
-    }
-
-    function clearStageObjects() {
-      flies.length = 0;
-      particles.length = 0;
-      popTexts.length = 0;
-      frog.tongue.active = false;
-      frog.tongue.state = "idle";
-      frog.tongue.progress = 0;
-    }
-
-    function desiredFlyCount() {
-      return Math.min(16, 6 + stage * 2);
-    }
-
-    function setupStage(stageNo) {
-      score = 0;
-      timeLeft = STAGE_TIME;
-      spawnAccum = 0;
-      clearStageObjects();
-
-      for (let i = 0; i < desiredFlyCount(); i++) {
-        spawnFly(true);
-      }
-
-      updateHud();
-      transitionText = `STAGE ${stageNo}`;
-      transitionTimer = 1.4;
-      hitFlash = 0;
-      playStageIntro(stageNo);
-      startBgm(stageNo);
-    }
-
-    function startGame() {
-      running = true;
-      stage = 1;
-      startBtn.disabled = true;
-      startBtn.textContent = "진행 중";
-      setupStage(stage);
-
-      if (animationId) cancelAnimationFrame(animationId);
-      lastTime = performance.now();
-      animationId = requestAnimationFrame(loop);
-    }
-
-    function nextStage() {
-      stage += 1;
-      playStageClearSound();
-      setupStage(stage);
-    }
-
-    function gameOver() {
-      running = false;
-      stopBgm();
-      playGameOverSound();
-      startBtn.disabled = false;
-      startBtn.textContent = "다시 시작";
-      transitionText = "게임 오버";
-      transitionTimer = 2.0;
-    }
-
-    function spawnFly(initial = false) {
-      const side = Math.random() < 0.5 ? -1 : 1;
-      const size = rand(10, 20);
-      const baseSpeed = 55 + stage * 20 + rand(10, 50);
-      const y = rand(WATER_Y + 40, H - 265);
-
-      flies.push({
-        x: initial ? rand(20, W - 20) : (side < 0 ? -40 : W + 40),
-        y,
-        r: size,
-        vx: initial
-          ? (Math.random() < 0.5 ? -1 : 1) * baseSpeed
-          : side * baseSpeed,
-        vy: rand(-30, 30),
-        bob: rand(0, Math.PI * 2),
-        wing: rand(0, Math.PI * 2),
-        worth: size >= 17 ? 2 : 1
-      });
-    }
-
-    function addParticles(x, y, count, color = "#ff6b6b") {
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x,
-          y,
-          vx: rand(-160, 160),
-          vy: rand(-180, 120),
-          life: rand(0.3, 0.7),
-          age: 0,
-          color
-        });
-      }
-    }
-
-    function addPopText(x, y, text) {
-      popTexts.push({
-        x,
-        y,
-        text,
-        age: 0,
-        life: 0.8
-      });
-    }
-
-    function tongueOrigin() {
-      return { x: frog.x, y: frog.y + 12 };
-    }
-
-    function bezierPoint(p0, p1, p2, p3, t) {
-      const mt = 1 - t;
-      return {
-        x: mt * mt * mt * p0.x + 3 * mt * mt * t * p1.x + 3 * mt * t * t * p2.x + t * t * t * p3.x,
-        y: mt * mt * mt * p0.y + 3 * mt * mt * t * p1.y + 3 * mt * t * t * p2.y + t * t * t * p3.y
-      };
-    }
-
-    function tongueCurvePoints(progress) {
-      const origin = tongueOrigin();
-      const tx = frog.tongue.targetX;
-      const ty = frog.tongue.targetY;
-      const dx = tx - origin.x;
-      const dy = ty - origin.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      const dirX = dx / dist;
-      const dirY = dy / dist;
-      const perpX = -dirY;
-      const perpY = dirX;
-
-      const coil = (1 - progress) * 70;
-
-      const p0 = { x: origin.x, y: origin.y };
-      const p1 = {
-        x: origin.x + dirX * 40 + perpX * coil,
-        y: origin.y + dirY * 20 + perpY * coil
-      };
-      const p2 = {
-        x: origin.x + dirX * (dist * 0.55) - perpX * coil * 0.9,
-        y: origin.y + dirY * (dist * 0.45) - perpY * coil * 0.9
-      };
-      const p3 = {
-        x: origin.x + dx * progress,
-        y: origin.y + dy * progress
-      };
-
-      return { p0, p1, p2, p3 };
-    }
-
-    function updateTongue(dt) {
-      const t = frog.tongue;
-      if (!t.active) return;
-
-      if (t.state === "extending") {
-        t.progress += dt * t.speed;
-
-        if (t.progress >= 1) {
-          t.progress = 1;
-          t.state = "retracting";
-          if (!t.hitPlayed) playMissSound();
+        if (GAME.spawnId) {
+          clearInterval(GAME.spawnId);
+          GAME.spawnId = null;
         }
+        if (GAME.moveId) {
+          cancelAnimationFrame(GAME.moveId);
+          GAME.moveId = null;
+        }
+      }
 
-        const curve = tongueCurvePoints(t.progress);
-        const tip = bezierPoint(curve.p0, curve.p1, curve.p2, curve.p3, 1);
-        t.tipX = tip.x;
-        t.tipY = tip.y;
-
-        for (let i = flies.length - 1; i >= 0; i--) {
-          const f = flies[i];
-          const d = Math.hypot(t.tipX - f.x, t.tipY - f.y);
-
-          if (d < f.r + 8) {
-            flies.splice(i, 1);
-            score += f.worth;
-            hitFlash = 0.9;
-            addParticles(f.x, f.y, 14 + Math.floor(f.r / 2), "#ffd43b");
-            addParticles(f.x, f.y, 10, "#ff6b6b");
-            addPopText(f.x, f.y - 10, `+${f.worth}`);
-            playHitSound(f.r);
-            t.hitPlayed = true;
-            t.state = "retracting";
-            updateHud();
-
-            if (score >= GOAL_SCORE) {
-              nextStage();
-            }
-            break;
+      function removeAllFlies() {
+        for (const fly of GAME.activeFlies) {
+          if (fly.el && fly.el.parentNode) {
+            fly.el.remove();
           }
         }
-      } else if (t.state === "retracting") {
-        t.progress -= dt * (t.speed + 0.45);
+        GAME.activeFlies = [];
+      }
 
-        if (t.progress <= 0) {
-          t.progress = 0;
-          t.active = false;
-          t.state = "idle";
+      function resetEntireGame() {
+        clearAllLoops();
+        removeAllFlies();
+        GAME.stage = 1;
+        GAME.totalScore = 0;
+        GAME.stageScore = 0;
+        GAME.timeLeft = stageConfig[1].time;
+        GAME.isPlaying = false;
+        GAME.isPaused = false;
+        updateHUD();
+        resetTongue();
+      }
+
+      function resetTongue() {
+        tongue.style.opacity = "0";
+        tongue.style.width = "0px";
+        tongue.style.transform = "rotate(0deg)";
+      }
+
+      function getPlayArea() {
+        const rect = gameWrap.getBoundingClientRect();
+        const topMin = 80;
+        const bottomMax = rect.height - 170;
+        const leftMin = 20;
+        const rightMax = rect.width - 20;
+        return { rect, topMin, bottomMax, leftMin, rightMax };
+      }
+
+      function randomRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function spawnFly() {
+        if (!GAME.isPlaying || GAME.isPaused) return;
+
+        const config = stageConfig[GAME.stage] || stageConfig[GAME.maxStage];
+        if (GAME.activeFlies.length >= config.flyMax) return;
+
+        const { leftMin, rightMax, topMin, bottomMax } = getPlayArea();
+
+        const el = document.createElement("div");
+        el.className = "fly";
+        el.textContent = "🪰";
+
+        const fly = {
+          id: `${Date.now()}_${Math.random()}`,
+          el,
+          x: randomRange(leftMin + 20, rightMax - 20),
+          y: randomRange(topMin + 20, bottomMax - 20),
+          vx: (Math.random() < 0.5 ? -1 : 1) * randomRange(0.8, config.speed),
+          vy: (Math.random() < 0.5 ? -1 : 1) * randomRange(0.8, config.speed),
+          alive: true
+        };
+
+        el.style.left = fly.x + "px";
+        el.style.top = fly.y + "px";
+
+        const hitHandler = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          catchFly(fly);
+        };
+
+        el.addEventListener("pointerdown", hitHandler, { passive: false });
+        el.addEventListener("click", hitHandler, { passive: false });
+
+        flyLayer.appendChild(el);
+        GAME.activeFlies.push(fly);
+      }
+
+      function moveFlies() {
+        if (!GAME.isPlaying) return;
+        if (!GAME.isPaused) {
+          const { leftMin, rightMax, topMin, bottomMax } = getPlayArea();
+
+          for (const fly of GAME.activeFlies) {
+            if (!fly.alive) continue;
+
+            fly.x += fly.vx;
+            fly.y += fly.vy;
+
+            if (fly.x <= leftMin || fly.x >= rightMax) {
+              fly.vx *= -1;
+              fly.x = Math.max(leftMin, Math.min(rightMax, fly.x));
+            }
+            if (fly.y <= topMin || fly.y >= bottomMax) {
+              fly.vy *= -1;
+              fly.y = Math.max(topMin, Math.min(bottomMax, fly.y));
+            }
+
+            if (Math.random() < 0.02) {
+              fly.vx += randomRange(-0.35, 0.35);
+              fly.vy += randomRange(-0.35, 0.35);
+
+              const speedLimit = (stageConfig[GAME.stage] || stageConfig[GAME.maxStage]).speed + 1.2;
+              fly.vx = Math.max(-speedLimit, Math.min(speedLimit, fly.vx));
+              fly.vy = Math.max(-speedLimit, Math.min(speedLimit, fly.vy));
+            }
+
+            fly.el.style.left = fly.x + "px";
+            fly.el.style.top = fly.y + "px";
+          }
+        }
+
+        GAME.moveId = requestAnimationFrame(moveFlies);
+      }
+
+      function catchFly(fly) {
+        if (!fly || !fly.alive || !GAME.isPlaying || GAME.isPaused) return;
+
+        fly.alive = false;
+        animateTongueTo(fly.x, fly.y);
+
+        GAME.stageScore += 1;
+        GAME.totalScore += 1;
+        updateHUD();
+
+        fly.el.classList.add("hit");
+
+        setTimeout(() => {
+          removeFly(fly.id);
+        }, 160);
+
+        if (GAME.stageScore >= GAME.targetPerStage) {
+          nextStage();
+        }
+      }
+
+      function removeFly(id) {
+        const idx = GAME.activeFlies.findIndex(f => f.id === id);
+        if (idx >= 0) {
+          const fly = GAME.activeFlies[idx];
+          if (fly.el && fly.el.parentNode) fly.el.remove();
+          GAME.activeFlies.splice(idx, 1);
+        }
+      }
+
+      function animateTongueTo(targetX, targetY) {
+        const frogRect = frog.getBoundingClientRect();
+        const wrapRect = gameWrap.getBoundingClientRect();
+
+        const startX = frogRect.left - wrapRect.left + frogRect.width / 2;
+        const startY = frogRect.top - wrapRect.top + frogRect.height * 0.62;
+
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        tongue.style.left = startX + "px";
+        tongue.style.bottom = (wrapRect.height - startY - 3) + "px";
+        tongue.style.opacity = "1";
+        tongue.style.width = length + "px";
+        tongue.style.transform = `rotate(${angle}deg)`;
+
+        clearTimeout(tongue._timer);
+        tongue._timer = setTimeout(resetTongue, 120);
+      }
+
+      function startStage(stageNumber) {
+        clearAllLoops();
+        removeAllFlies();
+
+        const config = stageConfig[stageNumber] || stageConfig[GAME.maxStage];
+
+        GAME.stage = stageNumber;
+        GAME.stageScore = 0;
+        GAME.timeLeft = config.time;
+        GAME.isPlaying = true;
+        GAME.isPaused = false;
+        updateHUD();
+
+        showBanner(`스테이지 ${stageNumber} 시작!`);
+
+        for (let i = 0; i < Math.min(2, config.flyMax); i++) {
+          spawnFly();
+        }
+
+        GAME.timerId = setInterval(() => {
+          if (!GAME.isPlaying || GAME.isPaused) return;
+
+          GAME.timeLeft -= 1;
+          updateHUD();
+
+          if (GAME.timeLeft <= 0) {
+            if (GAME.stageScore >= GAME.targetPerStage) {
+              nextStage();
+            } else {
+              failGame();
+            }
+          }
+        }, 1000);
+
+        GAME.spawnId = setInterval(() => {
+          spawnFly();
+        }, config.spawnMs);
+
+        GAME.moveId = requestAnimationFrame(moveFlies);
+      }
+
+      function nextStage() {
+        if (!GAME.isPlaying) return;
+
+        clearAllLoops();
+        removeAllFlies();
+
+        if (GAME.stage >= GAME.maxStage) {
+          winGame();
+          return;
+        }
+
+        const next = GAME.stage + 1;
+
+        showOverlay(
+          `스테이지 ${GAME.stage} 클리어!`,
+          `현재 스테이지에서 ${GAME.stageScore}점을 획득했습니다.\n다음 스테이지로 이동합니다.`,
+          "다음 스테이지",
+          () => {
+            hideOverlay();
+            startStage(next);
+          }
+        );
+      }
+
+      function failGame() {
+        GAME.isPlaying = false;
+        GAME.isPaused = false;
+        clearAllLoops();
+        removeAllFlies();
+        stopBGM();
+
+        showOverlay(
+          "게임 오버",
+          `스테이지 ${GAME.stage}에서 제한시간 내\n15점을 채우지 못했습니다.\n\n현재 스테이지 점수: ${GAME.stageScore}\n총 누적 점수: ${GAME.totalScore}`,
+          "처음부터 다시",
+          () => {
+            hideOverlay();
+            resetEntireGame();
+            unlockAudioAndStart();
+          }
+        );
+      }
+
+      function winGame() {
+        GAME.isPlaying = false;
+        GAME.isPaused = false;
+        clearAllLoops();
+        removeAllFlies();
+        stopBGM();
+
+        showOverlay(
+          "최종 클리어!",
+          `모든 스테이지를 통과했습니다.\n\n총 누적 점수: ${GAME.totalScore}`,
+          "다시 플레이",
+          () => {
+            hideOverlay();
+            resetEntireGame();
+            unlockAudioAndStart();
+          }
+        );
+      }
+
+      function manualEndGame() {
+        GAME.isPlaying = false;
+        GAME.isPaused = false;
+        clearAllLoops();
+        removeAllFlies();
+        stopBGM();
+
+        showOverlay(
+          "게임 종료",
+          `게임을 종료했습니다.\n\n총 누적 점수: ${GAME.totalScore}`,
+          "다시 시작",
+          () => {
+            hideOverlay();
+            resetEntireGame();
+            unlockAudioAndStart();
+          }
+        );
+      }
+
+      function togglePause() {
+        if (!GAME.isPlaying) return;
+
+        GAME.isPaused = !GAME.isPaused;
+        pauseBtn.textContent = GAME.isPaused ? "다시 시작" : "일시정지";
+
+        if (GAME.isPaused) {
+          pauseBGM();
+          showBanner("일시정지");
         } else {
-          const curve = tongueCurvePoints(t.progress);
-          const tip = bezierPoint(curve.p0, curve.p1, curve.p2, curve.p3, 1);
-          t.tipX = tip.x;
-          t.tipY = tip.y;
-        }
-      }
-    }
-
-    function updateFlies(dt) {
-      for (let i = flies.length - 1; i >= 0; i--) {
-        const f = flies[i];
-
-        f.bob += dt * (6 + stage * 0.6);
-        f.wing += dt * 25;
-        f.x += f.vx * dt;
-        f.y += f.vy * dt + Math.sin(f.bob) * (12 + f.r * 0.35) * dt;
-
-        if (f.y < WATER_Y + 35 || f.y > H - 250) {
-          f.vy *= -1;
-        }
-
-        if (f.x < -80 || f.x > W + 80) {
-          flies.splice(i, 1);
+          resumeBGM();
+          showBanner("재시작");
         }
       }
 
-      const gap = Math.max(0.22, 0.75 - stage * 0.05);
-      spawnAccum += dt;
+      function initAudio() {
+        if (audioUnlocked) return;
 
-      while (spawnAccum >= gap) {
-        spawnAccum -= gap;
-        if (flies.length < desiredFlyCount()) {
-          spawnFly(false);
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+
+          audioCtx = new AudioContextClass();
+
+          bgmOsc = audioCtx.createOscillator();
+          bgmGain = audioCtx.createGain();
+          bgmLfo = audioCtx.createOscillator();
+          bgmLfoGain = audioCtx.createGain();
+
+          bgmOsc.type = "triangle";
+          bgmOsc.frequency.value = 220;
+
+          bgmLfo.type = "sine";
+          bgmLfo.frequency.value = 2.4;
+          bgmLfoGain.gain.value = 18;
+
+          bgmLfo.connect(bgmLfoGain);
+          bgmLfoGain.connect(bgmOsc.frequency);
+
+          bgmGain.gain.value = 0.0;
+
+          bgmOsc.connect(bgmGain);
+          bgmGain.connect(audioCtx.destination);
+
+          bgmOsc.start();
+          bgmLfo.start();
+
+          audioUnlocked = true;
+        } catch (err) {
+          console.error("오디오 초기화 실패:", err);
         }
       }
 
-      while (flies.length < Math.max(4, desiredFlyCount() - 2)) {
-        spawnFly(false);
-      }
-    }
+      async function unlockAudioAndStart() {
+        initAudio();
 
-    function update(dt) {
-      updateBgm(dt);
+        try {
+          if (audioCtx && audioCtx.state === "suspended") {
+            await audioCtx.resume();
+          }
+        } catch (err) {
+          console.error("오디오 resume 실패:", err);
+        }
 
-      if (!running) {
-        if (transitionTimer > 0) transitionTimer -= dt;
-        hitFlash = Math.max(0, hitFlash - dt * 3.5);
-        return;
-      }
-
-      timeLeft -= dt;
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        updateHud();
-        gameOver();
-        return;
+        startBGM();
+        startStage(1);
       }
 
-      updateFlies(dt);
-      updateTongue(dt);
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.age += dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 280 * dt;
-        if (p.age >= p.life) particles.splice(i, 1);
+      function startBGM() {
+        if (!audioCtx || !bgmGain) return;
+        try {
+          const now = audioCtx.currentTime;
+          bgmGain.gain.cancelScheduledValues(now);
+          bgmGain.gain.setValueAtTime(bgmGain.gain.value, now);
+          bgmGain.gain.linearRampToValueAtTime(0.03, now + 0.25);
+        } catch (err) {
+          console.error("BGM 시작 실패:", err);
+        }
       }
 
-      for (let i = popTexts.length - 1; i >= 0; i--) {
-        const t = popTexts[i];
-        t.age += dt;
-        t.y -= 30 * dt;
-        if (t.age >= t.life) popTexts.splice(i, 1);
+      function stopBGM() {
+        if (!audioCtx || !bgmGain) return;
+        try {
+          const now = audioCtx.currentTime;
+          bgmGain.gain.cancelScheduledValues(now);
+          bgmGain.gain.setValueAtTime(bgmGain.gain.value, now);
+          bgmGain.gain.linearRampToValueAtTime(0.0, now + 0.2);
+        } catch (err) {
+          console.error("BGM 정지 실패:", err);
+        }
       }
 
-      if (transitionTimer > 0) transitionTimer -= dt;
-      hitFlash = Math.max(0, hitFlash - dt * 3.5);
-
-      updateHud();
-    }
-
-    function drawCloud(x, y, s) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(s, s);
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
-      ctx.arc(18, -8, 22, 0, Math.PI * 2);
-      ctx.arc(40, 0, 18, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function drawBackground() {
-      ctx.clearRect(0, 0, W, H);
-
-      drawCloud(40, 76, 1.0);
-      drawCloud(140, 95, 1.15);
-      drawCloud(280, 82, 0.95);
-
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.ellipse(40 + i * 82, 195, 30, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawFly(f) {
-      ctx.save();
-      ctx.translate(f.x, f.y);
-
-      const flap = Math.sin(f.wing) * 0.75;
-
-      ctx.strokeStyle = "rgba(255,255,255,0.75)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(-f.r * 0.55, -f.r * 0.35, f.r * 0.85, f.r * 0.42, flap, 0, Math.PI * 2);
-      ctx.ellipse(f.r * 0.55, -f.r * 0.35, f.r * 0.85, f.r * 0.42, -flap, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = "#1f1f1f";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, f.r, f.r * 0.62, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#2b2b2b";
-      ctx.beginPath();
-      ctx.arc(-f.r * 0.68, 0, f.r * 0.48, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "#1f1f1f";
-      ctx.lineWidth = 1.2;
-      for (let i = -1; i <= 1; i += 2) {
-        ctx.beginPath();
-        ctx.moveTo(i * f.r * 0.15, f.r * 0.15);
-        ctx.lineTo(i * f.r * 0.85, f.r * 0.6);
-        ctx.moveTo(i * f.r * 0.15, -f.r * 0.12);
-        ctx.lineTo(i * f.r * 0.85, -f.r * 0.58);
-        ctx.stroke();
+      function pauseBGM() {
+        stopBGM();
       }
 
-      ctx.restore();
-    }
-
-    function drawTongue() {
-      const t = frog.tongue;
-      if (!t.active || t.progress <= 0) return;
-
-      const curve = tongueCurvePoints(t.progress);
-
-      ctx.strokeStyle = "#ff6b6b";
-      ctx.lineWidth = 7;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(curve.p0.x, curve.p0.y);
-      ctx.bezierCurveTo(curve.p1.x, curve.p1.y, curve.p2.x, curve.p2.y, curve.p3.x, curve.p3.y);
-      ctx.stroke();
-
-      ctx.fillStyle = "#fa5252";
-      ctx.beginPath();
-      ctx.arc(curve.p3.x, curve.p3.y, 6.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function drawFrog() {
-      ctx.fillStyle = "#69db7c";
-      ctx.beginPath();
-      ctx.ellipse(frog.x, frog.y + 62, 88, 26, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#2f9e44";
-      ctx.beginPath();
-      ctx.arc(frog.x, frog.y, frog.faceR, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#2f9e44";
-      ctx.beginPath();
-      ctx.arc(frog.x - 26, frog.y - 34, 16, 0, Math.PI * 2);
-      ctx.arc(frog.x + 26, frog.y - 34, 16, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(frog.x - 26, frog.y - 34, 8, 0, Math.PI * 2);
-      ctx.arc(frog.x + 26, frog.y - 34, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#111";
-      ctx.beginPath();
-      ctx.arc(frog.x - 26, frog.y - 34, 3.5, 0, Math.PI * 2);
-      ctx.arc(frog.x + 26, frog.y - 34, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#37b24d";
-      ctx.beginPath();
-      ctx.arc(frog.x, frog.y + 18, 26, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "#173b2a";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(frog.x, frog.y + 10, 20, 0.18, Math.PI - 0.18);
-      ctx.stroke();
-    }
-
-    function drawParticles() {
-      for (const p of particles) {
-        const alpha = 1 - p.age / p.life;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2 + alpha * 2.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    function drawPopTexts() {
-      ctx.textAlign = "center";
-      for (const t of popTexts) {
-        const alpha = 1 - t.age / t.life;
-        ctx.fillStyle = `rgba(24,77,51,${alpha})`;
-        ctx.font = "bold 22px system-ui";
-        ctx.fillText(t.text, t.x, t.y);
-      }
-      ctx.textAlign = "start";
-    }
-
-    function drawOverlayTexts() {
-      if (!running) {
-        ctx.fillStyle = "rgba(0,0,0,0.15)";
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = "rgba(255,255,255,0.96)";
-        ctx.fillRect(52, 220, 316, 150);
-
-        ctx.fillStyle = "#184d33";
-        ctx.textAlign = "center";
-        ctx.font = "bold 28px system-ui";
-        ctx.fillText("게임 시작 버튼을 누르세요", W / 2, 272);
-        ctx.font = "18px system-ui";
-        ctx.fillText("30초 안에 15점 넘기면 스테이지 업", W / 2, 310);
-        ctx.fillText("화면 탭으로 혀 발사", W / 2, 340);
-        ctx.textAlign = "start";
+      function resumeBGM() {
+        startBGM();
       }
 
-      if (transitionTimer > 0 && transitionText) {
-        const alpha = Math.min(1, transitionTimer);
-        ctx.fillStyle = `rgba(255,255,255,${alpha * 0.95})`;
-        ctx.fillRect(92, 90, 236, 56);
-        ctx.fillStyle = `rgba(24,77,51,${alpha})`;
-        ctx.textAlign = "center";
-        ctx.font = "bold 28px system-ui";
-        ctx.fillText(transitionText, W / 2, 127);
-        ctx.textAlign = "start";
-      }
-    }
-
-    function drawHitFlash() {
-      if (hitFlash <= 0) return;
-      ctx.fillStyle = `rgba(255,255,255,${hitFlash * 0.14})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    function draw() {
-      drawBackground();
-      for (const f of flies) drawFly(f);
-      drawTongue();
-      drawParticles();
-      drawPopTexts();
-      drawFrog();
-      drawHitFlash();
-      drawOverlayTexts();
-    }
-
-    function loop(ts) {
-      const dt = Math.min(0.033, (ts - lastTime) / 1000);
-      lastTime = ts;
-
-      update(dt);
-      draw();
-
-      animationId = requestAnimationFrame(loop);
-    }
-
-    function getPos(evt) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-        y: (evt.clientY - rect.top) * (canvas.height / rect.height)
-      };
-    }
-
-    function launchTongue(x, y) {
-      if (!running) return;
-      const t = frog.tongue;
-      if (t.active) return;
-
-      t.active = true;
-      t.progress = 0;
-      t.state = "extending";
-      t.targetX = x;
-      t.targetY = y;
-      t.tipX = frog.x;
-      t.tipY = frog.y + 12;
-      t.hitPlayed = false;
-    }
-
-    canvas.addEventListener("pointerdown", async (e) => {
-      await resumeAudio();
-      const p = getPos(e);
-      launchTongue(p.x, p.y);
-    });
-
-    startBtn.addEventListener("click", async () => {
-      await resumeAudio();
-      startGame();
-    });
-
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      startBtn.addEventListener("click", () => {
+        hideOverlay();
+        if (!GAME.isPlaying) {
+          unlockAudioAndStart();
+        }
       });
-    }
 
-    updateHud();
-    draw();
+      messageBtn.addEventListener("click", () => {
+        hideOverlay();
+        if (!GAME.isPlaying) {
+          unlockAudioAndStart();
+        }
+      });
+
+      pauseBtn.addEventListener("click", togglePause);
+
+      endBtn.addEventListener("click", () => {
+        manualEndGame();
+      });
+
+      window.addEventListener("resize", () => {
+        updateHUD();
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden && GAME.isPlaying && !GAME.isPaused) {
+          GAME.isPaused = true;
+          pauseBtn.textContent = "다시 시작";
+          pauseBGM();
+        }
+      });
+
+      window.addEventListener("error", (event) => {
+        console.error("전역 오류:", event.error || event.message);
+      });
+
+      window.addEventListener("unhandledrejection", (event) => {
+        console.error("Promise 오류:", event.reason);
+      });
+
+      resetEntireGame();
+      showOverlay(
+        "개구리 파리 잡기",
+        "각 스테이지에서 제한시간 안에\n15점 이상을 얻어야 다음 단계로 넘어갑니다.\n\n중요:\n누적 점수가 아니라\n현재 스테이지 점수만 기준입니다.",
+        "시작하기",
+        () => {
+          hideOverlay();
+          unlockAudioAndStart();
+        }
+      );
+    })();
   </script>
 </body>
 </html>
