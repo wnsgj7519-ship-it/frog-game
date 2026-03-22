@@ -21,8 +21,6 @@
       --green: #2f9e44;
       --green2: #37b24d;
       --green3: #69db7c;
-      --water1: #74c0fc;
-      --water2: #339af0;
       --red: #ff6b6b;
     }
 
@@ -149,9 +147,8 @@
     let timeLeft = STAGE_TIME;
     let animationId = null;
     let lastTime = 0;
-    let spawnTimer = 0;
-    let bgmTimer = null;
-    let bgmStep = 0;
+
+    let spawnAccum = 0;
     let transitionText = "";
     let transitionTimer = 0;
     let hitFlash = 0;
@@ -172,53 +169,65 @@
         tipX: W / 2,
         tipY: H / 2,
         state: "idle",
-        speed: 2.25,
+        speed: 2.3,
         hitPlayed: false
       }
     };
 
+    const bgmState = {
+      playing: false,
+      elapsed: 0,
+      step: 0,
+      interval: 0.28
+    };
+
     function resumeAudio() {
       if (audioCtx.state === "suspended") {
-        audioCtx.resume();
+        return audioCtx.resume();
       }
+      return Promise.resolve();
     }
 
     function tone(freq, dur = 0.12, type = "square", volume = 0.03, start = 0) {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
+
       osc.type = type;
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+
       gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + start);
       gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + start + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + start + dur);
+
       osc.connect(gain);
       gain.connect(audioCtx.destination);
+
       osc.start(audioCtx.currentTime + start);
-      osc.stop(audioCtx.currentTime + start + dur + 0.02);
+      osc.stop(audioCtx.currentTime + start + dur + 0.03);
     }
 
     function playStageIntro(n) {
       const root = 280 + n * 25;
-      tone(root, 0.08, "triangle", 0.03, 0.00);
-      tone(root * 1.25, 0.08, "triangle", 0.03, 0.10);
-      tone(root * 1.5, 0.15, "triangle", 0.035, 0.20);
+      tone(root, 0.08, "triangle", 0.035, 0.00);
+      tone(root * 1.25, 0.08, "triangle", 0.035, 0.10);
+      tone(root * 1.5, 0.16, "triangle", 0.04, 0.20);
     }
 
     function playHitSound(sizeBonus = 0) {
-      tone(620 + sizeBonus * 30, 0.05, "square", 0.05, 0.00);
-      tone(920 + sizeBonus * 20, 0.08, "sawtooth", 0.04, 0.04);
-      tone(1280, 0.06, "triangle", 0.025, 0.09);
+      tone(700 + sizeBonus * 18, 0.05, "square", 0.06, 0.00);
+      tone(980 + sizeBonus * 12, 0.09, "sawtooth", 0.045, 0.03);
+      tone(1280, 0.06, "triangle", 0.03, 0.08);
     }
 
     function playMissSound() {
       tone(180, 0.06, "sawtooth", 0.02, 0.00);
-      tone(130, 0.10, "triangle", 0.015, 0.05);
+      tone(130, 0.09, "triangle", 0.015, 0.05);
     }
 
     function playStageClearSound() {
-      tone(523, 0.08, "triangle", 0.03, 0.00);
-      tone(659, 0.08, "triangle", 0.03, 0.10);
-      tone(784, 0.15, "triangle", 0.04, 0.20);
+      tone(523, 0.08, "triangle", 0.035, 0.00);
+      tone(659, 0.08, "triangle", 0.035, 0.10);
+      tone(784, 0.15, "triangle", 0.045, 0.20);
     }
 
     function playGameOverSound() {
@@ -228,7 +237,19 @@
     }
 
     function startBgm(stageNo) {
-      stopBgm();
+      bgmState.playing = true;
+      bgmState.elapsed = 0;
+      bgmState.step = 0;
+      bgmState.interval = Math.max(0.16, 0.28 - (stageNo - 1) * 0.01);
+    }
+
+    function stopBgm() {
+      bgmState.playing = false;
+    }
+
+    function updateBgm(dt) {
+      if (!bgmState.playing || audioCtx.state !== "running") return;
+
       const melodies = [
         [392, 494, 523, 587, 523, 494, 392, 330],
         [440, 523, 587, 659, 587, 523, 440, 349],
@@ -242,27 +263,23 @@
         [262, 262, 294, 294, 262, 262, 220, 220]
       ];
 
-      const idx = (stageNo - 1) % melodies.length;
+      const idx = (stage - 1) % melodies.length;
       const melody = melodies[idx];
       const bass = basses[idx];
-      bgmStep = 0;
 
-      bgmTimer = setInterval(() => {
-        if (!running) return;
-        const i = bgmStep % melody.length;
-        tone(melody[i], 0.12, "triangle", 0.018, 0.00);
-        tone(bass[i], 0.20, "sine", 0.012, 0.00);
+      bgmState.elapsed += dt;
+
+      while (bgmState.elapsed >= bgmState.interval) {
+        bgmState.elapsed -= bgmState.interval;
+
+        const i = bgmState.step % melody.length;
+        tone(melody[i], 0.12, "triangle", 0.02, 0.00);
+        tone(bass[i], 0.20, "sine", 0.013, 0.00);
         if (i % 2 === 0) {
-          tone(melody[i] * 2, 0.05, "square", 0.008, 0.06);
+          tone(melody[i] * 2, 0.05, "square", 0.009, 0.05);
         }
-        bgmStep++;
-      }, Math.max(140, 260 - (stageNo - 1) * 12));
-    }
 
-    function stopBgm() {
-      if (bgmTimer) {
-        clearInterval(bgmTimer);
-        bgmTimer = null;
+        bgmState.step++;
       }
     }
 
@@ -286,13 +303,17 @@
       frog.tongue.progress = 0;
     }
 
+    function desiredFlyCount() {
+      return Math.min(16, 6 + stage * 2);
+    }
+
     function setupStage(stageNo) {
       score = 0;
       timeLeft = STAGE_TIME;
-      spawnTimer = 0;
+      spawnAccum = 0;
       clearStageObjects();
 
-      for (let i = 0; i < 6 + Math.min(4, stageNo); i++) {
+      for (let i = 0; i < desiredFlyCount(); i++) {
         spawnFly(true);
       }
 
@@ -305,12 +326,12 @@
     }
 
     function startGame() {
-      resumeAudio();
       running = true;
       stage = 1;
       startBtn.disabled = true;
       startBtn.textContent = "진행 중";
       setupStage(stage);
+
       if (animationId) cancelAnimationFrame(animationId);
       lastTime = performance.now();
       animationId = requestAnimationFrame(loop);
@@ -335,15 +356,17 @@
     function spawnFly(initial = false) {
       const side = Math.random() < 0.5 ? -1 : 1;
       const size = rand(10, 20);
-      const baseSpeed = 55 + stage * 18 + rand(0, 45);
+      const baseSpeed = 55 + stage * 20 + rand(10, 50);
       const y = rand(WATER_Y + 40, H - 265);
 
       flies.push({
         x: initial ? rand(20, W - 20) : (side < 0 ? -40 : W + 40),
         y,
         r: size,
-        vx: initial ? (Math.random() < 0.5 ? -1 : 1) * baseSpeed : side * baseSpeed,
-        vy: rand(-25, 25),
+        vx: initial
+          ? (Math.random() < 0.5 ? -1 : 1) * baseSpeed
+          : side * baseSpeed,
+        vy: rand(-30, 30),
         bob: rand(0, Math.PI * 2),
         wing: rand(0, Math.PI * 2),
         worth: size >= 17 ? 2 : 1
@@ -399,6 +422,7 @@
       const perpY = dirX;
 
       const coil = (1 - progress) * 70;
+
       const p0 = { x: origin.x, y: origin.y };
       const p1 = {
         x: origin.x + dirX * 40 + perpX * coil,
@@ -412,6 +436,7 @@
         x: origin.x + dx * progress,
         y: origin.y + dy * progress
       };
+
       return { p0, p1, p2, p3 };
     }
 
@@ -456,7 +481,7 @@
           }
         }
       } else if (t.state === "retracting") {
-        t.progress -= dt * (t.speed + 0.4);
+        t.progress -= dt * (t.speed + 0.45);
 
         if (t.progress <= 0) {
           t.progress = 0;
@@ -471,8 +496,47 @@
       }
     }
 
+    function updateFlies(dt) {
+      for (let i = flies.length - 1; i >= 0; i--) {
+        const f = flies[i];
+
+        f.bob += dt * (6 + stage * 0.6);
+        f.wing += dt * 25;
+        f.x += f.vx * dt;
+        f.y += f.vy * dt + Math.sin(f.bob) * (12 + f.r * 0.35) * dt;
+
+        if (f.y < WATER_Y + 35 || f.y > H - 250) {
+          f.vy *= -1;
+        }
+
+        if (f.x < -80 || f.x > W + 80) {
+          flies.splice(i, 1);
+        }
+      }
+
+      const gap = Math.max(0.22, 0.75 - stage * 0.05);
+      spawnAccum += dt;
+
+      while (spawnAccum >= gap) {
+        spawnAccum -= gap;
+        if (flies.length < desiredFlyCount()) {
+          spawnFly(false);
+        }
+      }
+
+      while (flies.length < Math.max(4, desiredFlyCount() - 2)) {
+        spawnFly(false);
+      }
+    }
+
     function update(dt) {
-      if (!running) return;
+      updateBgm(dt);
+
+      if (!running) {
+        if (transitionTimer > 0) transitionTimer -= dt;
+        hitFlash = Math.max(0, hitFlash - dt * 3.5);
+        return;
+      }
 
       timeLeft -= dt;
       if (timeLeft <= 0) {
@@ -482,25 +546,7 @@
         return;
       }
 
-      spawnTimer += dt;
-      const spawnGap = Math.max(0.26, 0.9 - stage * 0.06);
-
-      if (spawnTimer >= spawnGap) {
-        spawnTimer = 0;
-        spawnFly(false);
-      }
-
-      for (let i = flies.length - 1; i >= 0; i--) {
-        const f = flies[i];
-        f.bob += dt * (6 + stage * 0.5);
-        f.wing += dt * 25;
-        f.x += f.vx * dt;
-        f.y += f.vy * dt + Math.sin(f.bob) * (12 + f.r * 0.35) * dt;
-
-        if (f.y < WATER_Y + 35 || f.y > H - 250) f.vy *= -1;
-        if (f.x < -70 || f.x > W + 70) flies.splice(i, 1);
-      }
-
+      updateFlies(dt);
       updateTongue(dt);
 
       for (let i = particles.length - 1; i >= 0; i--) {
@@ -521,6 +567,7 @@
 
       if (transitionTimer > 0) transitionTimer -= dt;
       hitFlash = Math.max(0, hitFlash - dt * 3.5);
+
       updateHud();
     }
 
@@ -594,6 +641,7 @@
       if (!t.active || t.progress <= 0) return;
 
       const curve = tongueCurvePoints(t.progress);
+
       ctx.strokeStyle = "#ff6b6b";
       ctx.lineWidth = 7;
       ctx.lineCap = "round";
@@ -722,8 +770,10 @@
     function loop(ts) {
       const dt = Math.min(0.033, (ts - lastTime) / 1000);
       lastTime = ts;
+
       update(dt);
       draw();
+
       animationId = requestAnimationFrame(loop);
     }
 
@@ -739,6 +789,7 @@
       if (!running) return;
       const t = frog.tongue;
       if (t.active) return;
+
       t.active = true;
       t.progress = 0;
       t.state = "extending";
@@ -749,14 +800,14 @@
       t.hitPlayed = false;
     }
 
-    canvas.addEventListener("pointerdown", (e) => {
-      resumeAudio();
+    canvas.addEventListener("pointerdown", async (e) => {
+      await resumeAudio();
       const p = getPos(e);
       launchTongue(p.x, p.y);
     });
 
-    startBtn.addEventListener("click", () => {
-      resumeAudio();
+    startBtn.addEventListener("click", async () => {
+      await resumeAudio();
       startGame();
     });
 
