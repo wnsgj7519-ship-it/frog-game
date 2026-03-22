@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>개구리 파리 잡기 - 스테이지 모드</title>
+
+  <meta name="theme-color" content="#2f9e44" />
+  <meta name="description" content="개구리 혀로 파리를 잡는 스테이지형 모바일 게임" />
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./frog_icon.png" />
+  <link rel="apple-touch-icon" href="./frog_icon.png" />
+
   <style>
     :root {
       --bg-top: #d8fbe4;
@@ -11,13 +19,13 @@
       --panel: rgba(255,255,255,0.88);
       --text: #184d33;
       --green: #2f9e44;
-      --green2: #37b24d;
-      --green3: #69db7c;
-      --water1: #74c0fc;
-      --water2: #339af0;
-      --red: #ff6b6b;
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Malgun Gothic, sans-serif;
@@ -25,21 +33,25 @@
       color: var(--text);
       text-align: center;
     }
+
     .wrap {
       max-width: 480px;
       margin: 0 auto;
       padding: 10px 10px 18px;
     }
+
     h1 {
       font-size: 28px;
       margin: 10px 0 8px;
     }
+
     .hud {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
       margin-bottom: 10px;
     }
+
     .pill {
       background: var(--panel);
       border-radius: 16px;
@@ -48,6 +60,7 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.08);
       font-size: 14px;
     }
+
     button {
       padding: 14px 28px;
       font-size: 18px;
@@ -57,11 +70,8 @@
       border-radius: 14px;
       margin: 6px 0 10px;
       font-weight: 800;
-      box-shadow: 0 8px 16px rgba(47,158,68,0.28);
     }
-    button:disabled {
-      opacity: 0.7;
-    }
+
     canvas {
       width: 100%;
       height: auto;
@@ -72,6 +82,7 @@
       touch-action: none;
       box-shadow: 0 18px 36px rgba(0,0,0,0.18);
     }
+
     .tip {
       margin-top: 10px;
       background: var(--panel);
@@ -98,625 +109,16 @@
     <canvas id="game" width="420" height="680"></canvas>
 
     <div class="tip">
-      30초 안에 15점 이상이면 다음 스테이지로 넘어갑니다. 스테이지가 올라갈수록 파리가 더 빠르게 움직입니다.
-      화면을 탭하면 개구리 입에서 혀가 돌돌 풀리듯 뻗어 나갑니다.
+      30초 안에 15점 이상이면 다음 스테이지로 넘어갑니다.
     </div>
   </div>
 
   <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-
-    const stageEl = document.getElementById("stage");
-    const scoreEl = document.getElementById("score");
-    const goalEl = document.getElementById("goal");
-    const timeEl = document.getElementById("time");
-    const startBtn = document.getElementById("startBtn");
-
-    const W = canvas.width;
-    const H = canvas.height;
-    const WATER_Y = 185;
-    const GOAL_SCORE = 15;
-    const STAGE_TIME = 30;
-
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioCtx();
-
-    let running = false;
-    let stage = 1;
-    let score = 0;
-    let timeLeft = STAGE_TIME;
-    let animationId = null;
-    let lastTime = 0;
-    let spawnTimer = 0;
-    let bgmTimer = null;
-    let bgmStep = 0;
-    let transitionText = "";
-    let transitionTimer = 0;
-    let hitFlash = 0;
-
-    const flies = [];
-    const particles = [];
-    const popTexts = [];
-
-    const frog = {
-      x: W / 2,
-      y: H - 108,
-      faceR: 58,
-      tongue: {
-        active: false,
-        progress: 0,
-        targetX: W / 2,
-        targetY: H / 2,
-        tipX: W / 2,
-        tipY: H / 2,
-        state: "idle",
-        speed: 2.25,
-        hitPlayed: false
-      }
-    };
-
-    function resumeAudio() {
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
-    }
-
-    function tone(freq, dur = 0.12, type = "square", volume = 0.03, start = 0) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
-      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + start + dur);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(audioCtx.currentTime + start);
-      osc.stop(audioCtx.currentTime + start + dur + 0.02);
-    }
-
-    function playStageIntro(n) {
-      const root = 280 + n * 25;
-      tone(root, 0.08, "triangle", 0.03, 0.00);
-      tone(root * 1.25, 0.08, "triangle", 0.03, 0.10);
-      tone(root * 1.5, 0.15, "triangle", 0.035, 0.20);
-    }
-
-    function playHitSound(sizeBonus = 0) {
-      tone(620 + sizeBonus * 30, 0.05, "square", 0.05, 0.00);
-      tone(920 + sizeBonus * 20, 0.08, "sawtooth", 0.04, 0.04);
-      tone(1280, 0.06, "triangle", 0.025, 0.09);
-    }
-
-    function playMissSound() {
-      tone(180, 0.06, "sawtooth", 0.02, 0.00);
-      tone(130, 0.10, "triangle", 0.015, 0.05);
-    }
-
-    function playStageClearSound() {
-      tone(523, 0.08, "triangle", 0.03, 0.00);
-      tone(659, 0.08, "triangle", 0.03, 0.10);
-      tone(784, 0.15, "triangle", 0.04, 0.20);
-    }
-
-    function playGameOverSound() {
-      tone(300, 0.10, "triangle", 0.025, 0.00);
-      tone(240, 0.12, "triangle", 0.02, 0.10);
-      tone(180, 0.16, "triangle", 0.02, 0.22);
-    }
-
-    function startBgm(stageNo) {
-      stopBgm();
-      const melodies = [
-        [392, 494, 523, 587, 523, 494, 392, 330],
-        [440, 523, 587, 659, 587, 523, 440, 349],
-        [494, 587, 659, 740, 659, 587, 494, 392],
-        [523, 659, 698, 784, 698, 659, 523, 440]
-      ];
-      const basses = [
-        [196, 196, 220, 220, 196, 196, 165, 165],
-        [220, 220, 247, 247, 220, 220, 196, 196],
-        [247, 247, 262, 262, 247, 247, 220, 220],
-        [262, 262, 294, 294, 262, 262, 220, 220]
-      ];
-      const idx = (stageNo - 1) % melodies.length;
-      const melody = melodies[idx];
-      const bass = basses[idx];
-      bgmStep = 0;
-
-      bgmTimer = setInterval(() => {
-        if (!running) return;
-        const i = bgmStep % melody.length;
-        tone(melody[i], 0.12, "triangle", 0.018, 0.00);
-        tone(bass[i], 0.20, "sine", 0.012, 0.00);
-        if (i % 2 === 0) tone(melody[i] * 2, 0.05, "square", 0.008, 0.06);
-        bgmStep++;
-      }, Math.max(140, 260 - (stageNo - 1) * 12));
-    }
-
-    function stopBgm() {
-      if (bgmTimer) {
-        clearInterval(bgmTimer);
-        bgmTimer = null;
-      }
-    }
-
-    function rand(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    function updateHud() {
-      stageEl.textContent = stage;
-      scoreEl.textContent = score;
-      goalEl.textContent = GOAL_SCORE;
-      timeEl.textContent = Math.max(0, Math.ceil(timeLeft));
-    }
-
-    function clearStageObjects() {
-      flies.length = 0;
-      particles.length = 0;
-      popTexts.length = 0;
-      frog.tongue.active = false;
-      frog.tongue.state = "idle";
-      frog.tongue.progress = 0;
-    }
-
-    function setupStage(stageNo) {
-      score = 0;
-      timeLeft = STAGE_TIME;
-      spawnTimer = 0;
-      clearStageObjects();
-
-      for (let i = 0; i < 6 + Math.min(4, stageNo); i++) {
-        spawnFly(true);
-      }
-
-      updateHud();
-      transitionText = `STAGE ${stageNo}`;
-      transitionTimer = 1.4;
-      hitFlash = 0;
-      playStageIntro(stageNo);
-      startBgm(stageNo);
-    }
-
-    function startGame() {
-      resumeAudio();
-      running = true;
-      stage = 1;
-      startBtn.disabled = true;
-      startBtn.textContent = "진행 중";
-      setupStage(stage);
-      if (animationId) cancelAnimationFrame(animationId);
-      lastTime = performance.now();
-      animationId = requestAnimationFrame(loop);
-    }
-
-    function nextStage() {
-      stage += 1;
-      playStageClearSound();
-      setupStage(stage);
-    }
-
-    function gameOver() {
-      running = false;
-      stopBgm();
-      playGameOverSound();
-      startBtn.disabled = false;
-      startBtn.textContent = "다시 시작";
-      transitionText = "게임 오버";
-      transitionTimer = 2.0;
-    }
-
-    function spawnFly(initial = false) {
-      const side = Math.random() < 0.5 ? -1 : 1;
-      const size = rand(10, 20);
-      const baseSpeed = 55 + stage * 18 + rand(0, 45);
-      const y = rand(WATER_Y + 40, H - 265);
-
-      flies.push({
-        x: initial ? rand(20, W - 20) : (side < 0 ? -40 : W + 40),
-        y,
-        r: size,
-        vx: initial ? (Math.random() < 0.5 ? -1 : 1) * baseSpeed : side * baseSpeed,
-        vy: rand(-25, 25),
-        bob: rand(0, Math.PI * 2),
-        wing: rand(0, Math.PI * 2),
-        worth: size >= 17 ? 2 : 1
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
       });
     }
-
-    function addParticles(x, y, count, color = "#ff6b6b") {
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x,
-          y,
-          vx: rand(-160, 160),
-          vy: rand(-180, 120),
-          life: rand(0.3, 0.7),
-          age: 0,
-          color
-        });
-      }
-    }
-
-    function addPopText(x, y, text) {
-      popTexts.push({
-        x,
-        y,
-        text,
-        age: 0,
-        life: 0.8
-      });
-    }
-
-    function tongueOrigin() {
-      return { x: frog.x, y: frog.y + 12 };
-    }
-
-    function bezierPoint(p0, p1, p2, p3, t) {
-      const mt = 1 - t;
-      return {
-        x: mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x,
-        y: mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y
-      };
-    }
-
-    function tongueCurvePoints(progress) {
-      const origin = tongueOrigin();
-      const tx = frog.tongue.targetX;
-      const ty = frog.tongue.targetY;
-      const dx = tx - origin.x;
-      const dy = ty - origin.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      const dirX = dx / dist;
-      const dirY = dy / dist;
-      const perpX = -dirY;
-      const perpY = dirX;
-
-      const coil = (1 - progress) * 70;
-      const p0 = { x: origin.x, y: origin.y };
-      const p1 = { x: origin.x + dirX * 40 + perpX * coil, y: origin.y + dirY * 20 + perpY * coil };
-      const p2 = { x: origin.x + dirX * (dist * 0.55) - perpX * coil * 0.9, y: origin.y + dirY * (dist * 0.45) - perpY * coil * 0.9 };
-      const p3 = { x: origin.x + dx * progress, y: origin.y + dy * progress };
-      return { p0, p1, p2, p3 };
-    }
-
-    function updateTongue(dt) {
-      const t = frog.tongue;
-      if (!t.active) return;
-
-      if (t.state === "extending") {
-        t.progress += dt * t.speed;
-        if (t.progress >= 1) {
-          t.progress = 1;
-          t.state = "retracting";
-          if (!t.hitPlayed) playMissSound();
-        }
-
-        const curve = tongueCurvePoints(t.progress);
-        const tip = bezierPoint(curve.p0, curve.p1, curve.p2, curve.p3, 1);
-        t.tipX = tip.x;
-        t.tipY = tip.y;
-
-        for (let i = flies.length - 1; i >= 0; i--) {
-          const f = flies[i];
-          const d = Math.hypot(t.tipX - f.x, t.tipY - f.y);
-          if (d < f.r + 8) {
-            flies.splice(i, 1);
-            score += f.worth;
-            hitFlash = 0.9;
-            addParticles(f.x, f.y, 14 + Math.floor(f.r / 2), "#ffd43b");
-            addParticles(f.x, f.y, 10, "#ff6b6b");
-            addPopText(f.x, f.y - 10, `+${f.worth}`);
-            playHitSound(f.r);
-            t.hitPlayed = true;
-            t.state = "retracting";
-            updateHud();
-            if (score >= GOAL_SCORE) nextStage();
-            break;
-          }
-        }
-      } else if (t.state === "retracting") {
-        t.progress -= dt * (t.speed + 0.4);
-        if (t.progress <= 0) {
-          t.progress = 0;
-          t.active = false;
-          t.state = "idle";
-        } else {
-          const curve = tongueCurvePoints(t.progress);
-          const tip = bezierPoint(curve.p0, curve.p1, curve.p2, curve.p3, 1);
-          t.tipX = tip.x;
-          t.tipY = tip.y;
-        }
-      }
-    }
-
-    function update(dt) {
-      if (!running) return;
-
-      timeLeft -= dt;
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        updateHud();
-        gameOver();
-        return;
-      }
-
-      spawnTimer += dt;
-      const spawnGap = Math.max(0.26, 0.9 - stage * 0.06);
-      if (spawnTimer >= spawnGap) {
-        spawnTimer = 0;
-        spawnFly(false);
-      }
-
-      for (let i = flies.length - 1; i >= 0; i--) {
-        const f = flies[i];
-        f.bob += dt * (6 + stage * 0.5);
-        f.wing += dt * 25;
-        f.x += f.vx * dt;
-        f.y += f.vy * dt + Math.sin(f.bob) * (12 + f.r * 0.35) * dt;
-        if (f.y < WATER_Y + 35 || f.y > H - 250) f.vy *= -1;
-        if (f.x < -70 || f.x > W + 70) flies.splice(i, 1);
-      }
-
-      updateTongue(dt);
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.age += dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 280 * dt;
-        if (p.age >= p.life) particles.splice(i, 1);
-      }
-
-      for (let i = popTexts.length - 1; i >= 0; i--) {
-        const t = popTexts[i];
-        t.age += dt;
-        t.y -= 30 * dt;
-        if (t.age >= t.life) popTexts.splice(i, 1);
-      }
-
-      if (transitionTimer > 0) transitionTimer -= dt;
-      hitFlash = Math.max(0, hitFlash - dt * 3.5);
-      updateHud();
-    }
-
-    function drawCloud(x, y, s) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(s, s);
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
-      ctx.arc(18, -8, 22, 0, Math.PI * 2);
-      ctx.arc(40, 0, 18, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function drawBackground() {
-      ctx.clearRect(0, 0, W, H);
-      drawCloud(40, 76, 1.0);
-      drawCloud(140, 95, 1.15);
-      drawCloud(280, 82, 0.95);
-
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.ellipse(40 + i * 82, 195, 30, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawFly(f) {
-      ctx.save();
-      ctx.translate(f.x, f.y);
-      const flap = Math.sin(f.wing) * 0.75;
-
-      ctx.strokeStyle = "rgba(255,255,255,0.75)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(-f.r * 0.55, -f.r * 0.35, f.r * 0.85, f.r * 0.42, flap, 0, Math.PI * 2);
-      ctx.ellipse(f.r * 0.55, -f.r * 0.35, f.r * 0.85, f.r * 0.42, -flap, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = "#1f1f1f";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, f.r, f.r * 0.62, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#2b2b2b";
-      ctx.beginPath();
-      ctx.arc(-f.r * 0.68, 0, f.r * 0.48, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "#1f1f1f";
-      ctx.lineWidth = 1.2;
-      for (let i = -1; i <= 1; i += 2) {
-        ctx.beginPath();
-        ctx.moveTo(i * f.r * 0.15, f.r * 0.15);
-        ctx.lineTo(i * f.r * 0.85, f.r * 0.6);
-        ctx.moveTo(i * f.r * 0.15, -f.r * 0.12);
-        ctx.lineTo(i * f.r * 0.85, -f.r * 0.58);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    function drawTongue() {
-      const t = frog.tongue;
-      if (!t.active || t.progress <= 0) return;
-      const curve = tongueCurvePoints(t.progress);
-      ctx.strokeStyle = "#ff6b6b";
-      ctx.lineWidth = 7;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(curve.p0.x, curve.p0.y);
-      ctx.bezierCurveTo(curve.p1.x, curve.p1.y, curve.p2.x, curve.p2.y, curve.p3.x, curve.p3.y);
-      ctx.stroke();
-
-      ctx.fillStyle = "#fa5252";
-      ctx.beginPath();
-      ctx.arc(curve.p3.x, curve.p3.y, 6.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function drawFrog() {
-      ctx.fillStyle = "#69db7c";
-      ctx.beginPath();
-      ctx.ellipse(frog.x, frog.y + 62, 88, 26, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#2f9e44";
-      ctx.beginPath();
-      ctx.arc(frog.x, frog.y, frog.faceR, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#2f9e44";
-      ctx.beginPath();
-      ctx.arc(frog.x - 26, frog.y - 34, 16, 0, Math.PI * 2);
-      ctx.arc(frog.x + 26, frog.y - 34, 16, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(frog.x - 26, frog.y - 34, 8, 0, Math.PI * 2);
-      ctx.arc(frog.x + 26, frog.y - 34, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#111";
-      ctx.beginPath();
-      ctx.arc(frog.x - 26, frog.y - 34, 3.5, 0, Math.PI * 2);
-      ctx.arc(frog.x + 26, frog.y - 34, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#37b24d";
-      ctx.beginPath();
-      ctx.arc(frog.x, frog.y + 18, 26, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "#173b2a";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(frog.x, frog.y + 10, 20, 0.18, Math.PI - 0.18);
-      ctx.stroke();
-    }
-
-    function drawParticles() {
-      for (const p of particles) {
-        const alpha = 1 - p.age / p.life;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2 + alpha * 2.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    function drawPopTexts() {
-      ctx.textAlign = "center";
-      for (const t of popTexts) {
-        const alpha = 1 - t.age / t.life;
-        ctx.fillStyle = `rgba(24,77,51,${alpha})`;
-        ctx.font = "bold 22px system-ui";
-        ctx.fillText(t.text, t.x, t.y);
-      }
-      ctx.textAlign = "start";
-    }
-
-    function drawOverlayTexts() {
-      if (!running) {
-        ctx.fillStyle = "rgba(0,0,0,0.15)";
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = "rgba(255,255,255,0.96)";
-        ctx.fillRect(52, 220, 316, 150);
-
-        ctx.fillStyle = "#184d33";
-        ctx.textAlign = "center";
-        ctx.font = "bold 28px system-ui";
-        ctx.fillText("게임 시작 버튼을 누르세요", W / 2, 272);
-        ctx.font = "18px system-ui";
-        ctx.fillText("30초 안에 15점 넘기면 스테이지 업", W / 2, 310);
-        ctx.fillText("화면 탭으로 혀 발사", W / 2, 340);
-        ctx.textAlign = "start";
-      }
-
-      if (transitionTimer > 0 && transitionText) {
-        const alpha = Math.min(1, transitionTimer);
-        ctx.fillStyle = `rgba(255,255,255,${alpha * 0.95})`;
-        ctx.fillRect(92, 90, 236, 56);
-        ctx.fillStyle = `rgba(24,77,51,${alpha})`;
-        ctx.textAlign = "center";
-        ctx.font = "bold 28px system-ui";
-        ctx.fillText(transitionText, W / 2, 127);
-        ctx.textAlign = "start";
-      }
-    }
-
-    function drawHitFlash() {
-      if (hitFlash <= 0) return;
-      ctx.fillStyle = `rgba(255,255,255,${hitFlash * 0.14})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    function draw() {
-      drawBackground();
-      for (const f of flies) drawFly(f);
-      drawTongue();
-      drawParticles();
-      drawPopTexts();
-      drawFrog();
-      drawHitFlash();
-      drawOverlayTexts();
-    }
-
-    function loop(ts) {
-      const dt = Math.min(0.033, (ts - lastTime) / 1000);
-      lastTime = ts;
-      update(dt);
-      draw();
-      animationId = requestAnimationFrame(loop);
-    }
-
-    function getPos(evt) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-        y: (evt.clientY - rect.top) * (canvas.height / rect.height)
-      };
-    }
-
-    function launchTongue(x, y) {
-      if (!running) return;
-      const t = frog.tongue;
-      if (t.active) return;
-      t.active = true;
-      t.progress = 0;
-      t.state = "extending";
-      t.targetX = x;
-      t.targetY = y;
-      t.tipX = frog.x;
-      t.tipY = frog.y + 12;
-      t.hitPlayed = false;
-    }
-
-    canvas.addEventListener("pointerdown", (e) => {
-      resumeAudio();
-      const p = getPos(e);
-      launchTongue(p.x, p.y);
-    });
-
-    startBtn.addEventListener("click", () => {
-      resumeAudio();
-      startGame();
-    });
-
-    updateHud();
-    draw();
   </script>
 </body>
 </html>
